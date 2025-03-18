@@ -67,15 +67,14 @@ def heapSort(arr):
         arr[0], arr[i] = arr[i], arr[0]
         heapify(arr, i, 0)
 
-def bubbleSort(arr):
-    for n in range(len(arr) - 1, 0, -1):
-        swapped = False
-        for i in range(n):
-            if arr[i] > arr[i + 1]:
-                arr[i], arr[i + 1] = arr[i + 1], arr[i]
-                swapped = True
-        if not swapped:
-            break
+def insertionSort(arr):
+    for i in range(1, len(arr)):
+        key = arr[i]
+        j = i - 1
+        while j >= 0 and key < arr[j]:
+            arr[j + 1] = arr[j]
+            j -= 1
+        arr[j + 1] = key
 
 arrays = [
     list(range(1, 101)), 
@@ -91,12 +90,12 @@ sort_algorithms = {
     "QuickSort": lambda arr: quickSort(arr, 0, len(arr) - 1),
     "MergeSort": lambda arr: mergeSort(arr, 0, len(arr) - 1),
     "HeapSort": lambda arr: heapSort(arr),
-    "BubbleSort": lambda arr: bubbleSort(arr)
+    "InsertionSort": lambda arr: insertionSort(arr)
 }
 
 cumulative_runtimes = {algo: 0.0 for algo in sort_algorithms}
 
-print(f"{'Array #':<10} {'QuickSort':<12} {'MergeSort':<12} {'HeapSort':<12} {'BubbleSort':<12}")
+print(f"{'Array #':<10} {'QuickSort':<12} {'MergeSort':<12} {'HeapSort':<12} {'InsertionSort':<12}")
 print("=" * 60)
 
 for i, arr in enumerate(arrays, start=1):
