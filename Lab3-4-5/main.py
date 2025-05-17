@@ -1,67 +1,81 @@
 import time
-from statistics import mean
-from algorithms import bfs, dfs, dijkstra, floyd_warshall, kruskal, prim
+import random
 from graphs import (
-    complete_graph, bipartite_graph, sparse_graph,
-    dense_graph, cyclic_graph, tree_graph
+    generate_complete_graph,
+    generate_sparse_graph,
+    generate_dense_graph,
+    generate_tree,
+    generate_bipartite_graph,
+    generate_cyclic_graph,
+    generate_acyclic_graph,
+    generate_grid_graph,
 )
+from algorithms import bfs, dfs, dijkstra, floyd_warshall, kruskal, prim
 
-graphs = {
-    "Complete Graph": complete_graph,
-    "Bipartite Graph": bipartite_graph,
-    "Sparse Graph": sparse_graph,
-    "Dense Graph": dense_graph,
-    "Cyclic Graph": cyclic_graph,
-    "Tree Graph": tree_graph
-}
+def measure_time(func, *args):
+    start = time.perf_counter()
+    result = func(*args)
+    end = time.perf_counter()
+    return end - start, result
 
-def average_time(func, graph, nodes, is_weighted=False):
-    times = []
-    for start_node in nodes:
-        args = (graph, start_node) if not is_weighted else (graph, start_node)
-        start = time.time()
-        func(*args)
-        end = time.time()
-        times.append(end - start)
-    return mean(times)
+def to_weighted(graph, directed=False, max_weight=10):
+    weighted_graph = {}
+    for u in range(max(graph.keys()) + 1):
+        weighted_graph[u] = []
+    for u in graph:
+        for v in graph[u]:
+            weight = random.randint(1, max_weight)
+            weighted_graph[u].append((v, weight))
+            if not directed:
+                weighted_graph[v].append((u, weight))
+    return weighted_graph
 
-def run_all_algorithms(graph_dict, graph_name):
-    print(f"\n--- {graph_name} ---")
+def to_edge_list(graph):
+    edges = set()
+    for u in graph:
+        for v, w in graph[u]:
+            if (v, u, w) not in edges:
+                edges.add((u, v, w))
+    return list(edges)
 
-    # Get 10 unique start nodes (filter out isolated ones)
-    all_nodes = [n for n, neighbors in graph_dict.items() if neighbors]
-    start_nodes = all_nodes[:10] if len(all_nodes) >= 10 else all_nodes
-
-    if not start_nodes:
-        print("Graph is empty or all nodes are isolated.")
-        return
-
-    # BFS and DFS
-    print(f"BFS Avg Time: {average_time(bfs, graph_dict, start_nodes):.6f} s")
-    print(f"DFS Avg Time: {average_time(dfs, graph_dict, start_nodes):.6f} s")
-
-    # Convert to weighted format for Dijkstra, Floyd-Warshall, Prim
-    weighted_graph = {
-        node: [(neighbor, 1) for neighbor in neighbors]
-        for node, neighbors in graph_dict.items()
+def main():
+    sizes = [10, 25, 50, 100, 200, 400]
+    graph_generators = {
+        "complete": generate_complete_graph,
+        "sparse": generate_sparse_graph,
+        "dense": generate_dense_graph,
+        "tree": generate_tree,
+        "bipartite": lambda n: generate_bipartite_graph(n),
+        "cyclic": generate_cyclic_graph,
+        "acyclic": generate_acyclic_graph,
+        "grid": lambda n: generate_grid_graph(int(n ** 0.5), int(n ** 0.5)),
     }
 
-    print(f"Dijkstra Avg Time: {average_time(dijkstra, weighted_graph, start_nodes, is_weighted=True):.6f} s")
-    print(f"Floyd-Warshall Avg Time: {average_time(lambda g, _: floyd_warshall(g), weighted_graph, start_nodes):.6f} s")
+    print(f"{'Type':<10} {'Size':<6} | {'BFS':<8} {'DFS':<8} | {'Dijkstra':<10} {'Floyd-Warshall':<16} | {'Kruskal':<10} {'Prim':<10}")
+    print("-" * 100)
 
-    # Kruskal: same input every time
-    edge_list = []
-    added = set()
-    for u in graph_dict:
-        for v in graph_dict[u]:
-            if (v, u) not in added:
-                edge_list.append((u, v, 1))
-                added.add((u, v))
+    for name, gen_func in graph_generators.items():
+        for size in sizes:
+            try:
+                base_graph = gen_func(size)
 
-    num_nodes = len(graph_dict)
-    print(f"Kruskal Avg Time: {average_time(lambda e, _: kruskal(e, num_nodes), edge_list, start_nodes):.6f} s")
-    print(f"Prim Avg Time: {average_time(prim, weighted_graph, start_nodes, is_weighted=True):.6f} s")
+                bfs_time, _ = measure_time(bfs, base_graph, 0)
+                dfs_time, _ = measure_time(dfs, base_graph, 0)
 
-# Run benchmarks on all graphs
-for name, g in graphs.items():
-    run_all_algorithms(dict(g), name)
+                directed_graph = to_weighted(base_graph, directed=True)
+                dijkstra_time, _ = measure_time(dijkstra, directed_graph, 0)
+                floyd_time, _ = measure_time(floyd_warshall, directed_graph)
+
+                undirected_graph = to_weighted(base_graph, directed=False)
+                edge_list = to_edge_list(undirected_graph)
+                kruskal_time, _ = measure_time(kruskal, edge_list, size)
+                prim_time, _ = measure_time(prim, undirected_graph, 0)
+
+                print(f"{name:<10} {size:<6} | {bfs_time:<8.6f} {dfs_time:<8.6f} | "
+                      f"{dijkstra_time:<10.6f} {floyd_time:<16.6f} | "
+                      f"{kruskal_time:<10.6f} {prim_time:<10.6f}")
+            except Exception as e:
+                print(f"{name:<10} {size:<6} | Error: {e}")
+
+if __name__ == "__main__":
+    main()

@@ -1,53 +1,108 @@
+import random
 from collections import defaultdict
 
-def create_graph(edge_list):
+def generate_complete_graph(n):
     graph = defaultdict(list)
-    for u, v in edge_list:
-        graph[u].append(v)
-        graph[v].append(u)  # Undirected
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                graph[i].append(j)
     return graph
 
-# 1. Complete Graph (K10) — every node connected to every other
-complete_edges = [(i, j) for i in range(10) for j in range(i+1, 10)]
-complete_graph = create_graph(complete_edges)
+def generate_sparse_graph(n):
+    graph = defaultdict(list)
+    for i in range(n - 1):
+        graph[i].append(i + 1)
+        graph[i + 1].append(i)
+    for i in range(n):
+        for j in range(i + 1, n):
+            if j not in graph[i] and random.random() < 0.1:
+                graph[i].append(j)
+                graph[j].append(i)
 
-# 2. Bipartite Graph — two sets of 5 nodes each, edges only between sets
-bipartite_edges = [(i, j) for i in range(5) for j in range(5, 10)]
-bipartite_graph = create_graph(bipartite_edges)
+    return graph
 
-# 3. Sparse Graph — 10 nodes, connected, lightly branched (15 edges)
-sparse_edges = [
-    (0, 1), (1, 2), (2, 3),
-    (3, 4), (4, 5), (5, 6),
-    (2, 7), (7, 8), (8, 9),
-    (0, 9),  # shortcut
-    (3, 7),  # cross connection
-    (1, 6),  # cross connection
-    (4, 8),  # cross connection
-    (5, 9),  # new edge
-    (0, 3)   # new edge
-]
-sparse_graph = create_graph(sparse_edges)
 
-# 4. Dense Graph — not complete, but lots of edges (e.g., 70% of K10)
-dense_edges = []
-nodes = list(range(10))
-for i in range(10):
-    for j in range(i+1, 10):
-        if len(dense_edges) < int(0.7 * 45):  # 45 = C(10,2)
-            dense_edges.append((i, j))
-dense_graph = create_graph(dense_edges)
+def generate_dense_graph(n):
+    graph = defaultdict(list)
+    for i in range(n):
+        for j in range(i + 1, n):
+            if random.random() < 0.8:
+                graph[i].append(j)
+                graph[j].append(i)
+    return graph
 
-# 5. Cyclic Graph — like a ring
-cyclic_edges = [(i, (i+1) % 10) for i in range(10)]
-cyclic_graph = create_graph(cyclic_edges)
+def generate_tree(n):
+    graph = defaultdict(list)
+    for i in range(1, n):
+        parent = random.randint(0, i - 1)
+        graph[parent].append(i)
+        graph[i].append(parent)
+    return graph
 
-# 6. Tree — 10 nodes, no cycles
-# Example: binary-ish tree structure
-tree_edges = [
-    (0, 1), (0, 2),
-    (1, 3), (1, 4),
-    (2, 5), (2, 6),
-    (3, 7), (4, 8), (5, 9)
-]
-tree_graph = create_graph(tree_edges)
+def generate_bipartite_graph(n):
+    graph = defaultdict(list)
+    left = set(range(n // 2))
+    right = set(range(n // 2, n))
+    for u in left:
+        connections = random.sample(sorted(right), random.randint(1, len(right)))
+        for v in connections:
+            graph[u].append(v)
+            graph[v].append(u)
+    return graph
+
+def generate_cyclic_graph(n, extra_edges=None):
+    graph = generate_tree(n)
+    if extra_edges is None:
+        extra_edges = n // 2
+    added = 0
+    while added < extra_edges:
+        u, v = random.sample(range(n), 2)
+        if v not in graph[u]:
+            graph[u].append(v)
+            graph[v].append(u)
+            added += 1
+    return graph
+
+def generate_acyclic_graph(n):
+    graph = defaultdict(list)
+    for i in range(n):
+        graph[i] = []
+    for i in range(n):
+        for j in range(i + 1, n):
+            if random.random() < 0.3:
+                graph[i].append(j)
+    return graph  # This is a DAG (Directed Acyclic Graph)
+
+def generate_grid_graph(rows, cols):
+    graph = defaultdict(list)
+    for r in range(rows):
+        for c in range(cols):
+            node = r * cols + c
+            if c < cols - 1:
+                right = node + 1
+                graph[node].append(right)
+                graph[right].append(node)
+            if r < rows - 1:
+                down = node + cols
+                graph[node].append(down)
+                graph[down].append(node)
+    return graph
+
+def generate_weighted_graph(n, edge_prob=0.5, max_weight=10):
+    graph = defaultdict(list)
+    for i in range(n):
+        for j in range(i + 1, n):
+            if random.random() < edge_prob:
+                weight = random.randint(1, max_weight)
+                graph[i].append((j, weight))
+                graph[j].append((i, weight))
+    return graph
+
+def generate_directed_graph(n, edge_prob=0.3):
+    graph = defaultdict(list)
+    for i in range(n):
+        for j in range(n):
+            if i != j and random.random() < edge_prob:
+                graph[i].append(j)
+    return graph
